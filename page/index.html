@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%; width:100%">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="static/css/reset.min.css">
+    <link rel="stylesheet" href="static/css/style.css">
+    <link rel="stylesheet" type="text/css" href="static/css/displaystyles.css">
+    <title>Document</title>
+    <style>
+        body {
+            height: 100%;
+            width: 100%;
+        }
+
+        .context {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            z-index: 10;
+        }
+
+        .nav {
+            width: 6%;
+            height: 100%;
+        }
+
+        .nav img {
+            width: 30px;
+            height: 30px;
+        }
+
+        #li0:hover>#img0 {
+            content: url(img/pen-actived.png);
+        }
+
+        #li1:hover>#img1 {
+            content: url(img/eraser-actived.png);
+        }
+
+        #li2:hover>#img2 {
+            content: url(img/Clear-actived.png);
+        }
+
+        #li3:hover>#img3 {
+            content: url(img/rect-actived.png);
+        }
+
+        #li4:hover>#img4 {
+            content: url(img/download-actived.png);
+        }
+
+        #li5:hover>#img5 {
+            content: url(img/upload-actived.png);
+        }
+
+        .board {
+            width: 90%;
+            height: 100%;
+            position: relative;
+        }
+
+        .text {
+            width: 70%;
+            height: 5%;
+            position: absolute;
+            background-color: pink;
+            right: 15%;
+            bottom: 4rem;
+            z-index: 99999;
+            font-family: "trebuchet MS", sans-serif;
+            font-size: 45px;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 10px;
+            background: hwb(223 52% 0%);
+            box-shadow: -12px 12px 20px #acabab,
+                16px -16px 38px #ffffff;
+        }
+
+        canvas {
+            margin: 1rem;
+            border-radius: 30px;
+            background: #ffffff;
+            box-shadow: -8px 8px 16px #737373,
+                8px -8px 16px #ffffff;
+            position: absolute;
+            z-index: 0;
+            border: 1px solid #c3c3ce;
+            left: 10px;
+
+        }
+    </style>
+</head>
+
+<body>
+    <div class="context">
+        <div class="nav">
+            <nav class="navbar">
+                <ul class="navbar__menu" id="lis">
+                    <li class="navbar__item">
+                        <a href="#" class="navbar__link" id="li0"><img src="img/pen-chosed.png"
+                                id="img0"><span>pen</span></a>
+                    </li>
+                    <li class="navbar__item">
+                        <a href="#" class="navbar__link" id="li1"><img src="img/eraser.png"
+                                id="img1"><span>eraser</span></a>
+                    </li>
+                    <li class="navbar__item">
+                        <a href="#" class="navbar__link" id="li2"><img src="img/Clear.png"
+                                id="img2"><span>clear</span></a>
+                    </li>
+                    <li class="navbar__item">
+                        <a href="#" class="navbar__link" id="li3"><img src="img/rect.png"
+                                id="img3"><span>rect</span></a>
+                    </li>
+                    <li class="navbar__item">
+                        <a href="" class="navbar__link" id="li4" download="download"><img src="img/download.png"
+                                id="img4"><span>download</span></a>
+                    </li>
+                    <li class="navbar__item">
+                        <a href="#" class="navbar__link" id="li5"><img src="img/upload.png"
+                                id="img5"><span>upload</span></a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <div class="board" id="board">
+            <canvas id="canvas"></canvas>
+            <div class="text">
+                <div class="wenben">
+                    Sketch,让交互更美好
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src='static/js/jquery-1.10.2.min.js'></script>
+    <script src="https://cdn.bootcss.com/qs/6.8.0/qs.min.js"></script>
+    <script>
+        var canvas = document.getElementById("canvas");
+        var ctx = canvas.getContext("2d");
+        ctx.lineWidth = "8"
+        var isDraw = false
+
+        var huaban = {
+            type: "pen",
+            isDraw: false,
+        }
+        var btns = document.querySelectorAll("a");
+        for (var i = 0; i < btns.length; i++) {
+            btns[i].onclick = function () {
+                for (var i = 0; i < btns.length; i++) {
+                    var img = btns[i].querySelector("img");
+                    var src = img.src.split('/');
+                    src = src[src.length - 1].split('.')[0];
+                    src = src.split('-')[0];
+                    src = "img/" + src + ".png";
+                    img.setAttribute("src", src)
+                }
+                var img = this.querySelector("img");
+                var src = img.src.split('/');
+                var aDom = document.querySelector("#li4")
+                src = src[src.length - 1].split('.')[0];
+                var text = document.querySelector(".text")
+                //选中元素，修改画板模式
+                switch (src) {
+                    case "pen":
+                        huaban.type = 'pen'
+                        ctx.strokeStyle = "#000"
+                        ctx.lineWidth = "8"
+                        break;
+                    case "eraser":
+                        huaban.type = 'eraser'
+                        ctx.strokeStyle = "#fff"
+                        ctx.lineWidth = "25"
+                        break;
+                    case "Clear":
+                        huaban.type = 'clear'
+                        ctx.clearRect(0, 0, canvas.width, canvas.height)
+                        var imageData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
+                        for (var i = 0; i < imageData.data.length; i += 4) {
+                            // 当该像素是透明的，则设置成白色
+                            if (imageData.data[i + 3] == 0) {
+                                imageData.data[i] = 255;
+                                imageData.data[i + 1] = 255;
+                                imageData.data[i + 2] = 255;
+                                imageData.data[i + 3] = 255;
+                            }
+                        }
+                        canvas.getContext("2d").putImageData(imageData, 0, 0);
+                        text.innerHTML = "Sketch,让交互更美好"
+                        break;
+                    case "rect":
+                        huaban.type = 'rect'
+                        break;
+                    case "download":
+                        var url = canvas.toDataURL()
+                        console.log(url)
+                        aDom.setAttribute("href", url);
+                        break;
+                    case "upload":
+                        huaban.type = 'uploads'
+                        const xhr = new XMLHttpRequest();
+                        //2. 初始化 设置请求类型与URL
+                        xhr.open('POST', 'http://127.0.0.1:5001/predict');
+                        //设置请求头
+                        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                        //设置自定义请求头
+                        //xhr.setRequestHeader('name','superLmk');
+                        //3.发送
+                        var name = canvas.toDataURL()
+                        xhr.send(name);
+                        xhr.onreadystatechange = function () {
+                            //判断
+                            if (xhr.readyState === 4) {
+                                if (xhr.status >= 200 && xhr.status < 300) {
+                                    //处理服务端返回的结果
+                                    var json_response = JSON.parse(xhr.response)
+                                    console.log(json_response)
+                                    text.innerHTML = "我猜您画的是:" + json_response.label
+                                }
+                            }
+                        }
+                        break;
+                }
+                src = "img/" + src + "-chosed.png"
+                img.setAttribute("src", src)
+            }
+        }
+    </script>
+    <script type="text/javascript" src="js/script.js"></script>
+    <script>
+        var canvas = document.getElementById("canvas");
+        var ctx = canvas.getContext("2d");
+        var board = document.getElementById("board");
+        var nav = document.querySelector(".navbar")
+        canvas.width = window.innerWidth * 0.9;
+        canvas.height = document.querySelector(".navbar").clientHeight;
+        var imageData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
+        var text = document.querySelector(".text")
+        uploadphoto = function () {
+            const xhr = new XMLHttpRequest();
+            //2. 初始化 设置请求类型与URL
+            xhr.open('POST', 'http://127.0.0.1:5001/predict');
+            //设置请求头
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            //设置自定义请求头
+            //xhr.setRequestHeader('name','superLmk');
+            //3.发送
+            var name = canvas.toDataURL()
+            xhr.send(name);
+            console.log("已成功发送图片")
+            xhr.onreadystatechange = function () {
+                //判断
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        //处理服务端返回的结果
+                        var json_response = JSON.parse(xhr.response)
+                        console.log(json_response)
+                        text.innerHTML = "我猜您画的是:" + json_response.label
+                    }
+                }
+            }
+        }
+        for (var i = 0; i < imageData.data.length; i += 4) {
+            // 当该像素是透明的，则设置成白色
+            if (imageData.data[i + 3] == 0) {
+                imageData.data[i] = 255;
+                imageData.data[i + 1] = 255;
+                imageData.data[i + 2] = 255;
+                imageData.data[i + 3] = 255;
+            }
+        }
+        canvas.getContext("2d").putImageData(imageData, 0, 0);
+        //鼠标按下
+        var states={
+            haha:1
+        }
+        var state=0
+        canvas.onmousedown = function (e) {
+            ctx.lineCap = "round"
+            ctx.lineJoin = "round"
+            ctx.lineWidth = "8"
+            ctx.beginPath()
+            isDraw = true
+            ctx.moveTo(e.offsetX, e.offsetY)
+            states.haha = 1
+            state+=1
+        }
+        //鼠标移动
+        canvas.onmousemove = function (e) {
+            if (isDraw) {
+                ctx.lineTo(e.offsetX, e.offsetY)
+                ctx.stroke()
+            }
+        }
+        //松开鼠标
+        onmouseup = function () {
+            isDraw = false
+
+        }
+        Object.defineProperty(states,'haha', {
+            set: function () {
+                if (state == 1) {
+                    setTimeout(function () {
+                        uploadphoto()
+                        console.log("成功发送图片至后台")
+                        state = 0
+                    }, 5000)
+                }
+            }
+        })
+
+    </script>
+    <script>
+
+    </script>
+</body>
+
+</html>
